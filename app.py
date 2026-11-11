@@ -19,6 +19,9 @@ client = genai.Client(api_key=api_key)
 
 MODEL = "gemini-3.8-flash"
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
 
 def ask_gemini(prompt, retries=4):
     for attempt in range(retries):
@@ -32,7 +35,7 @@ def ask_gemini(prompt, retries=4):
                 return "The server is busy right now. Please try again in a minute."
 
 
-tab1, tab2, tab3 = st.tabs(["Study Notes", "Quiz", "PDF Q&A"])
+tab1, tab2, tab3, tab4 = st.tabs(["Study Notes", "Quiz", "PDF Q&A", "Study Plan"])
 
 with tab1:
     question = st.text_input("Type your doubt here:")
@@ -43,7 +46,18 @@ with tab1:
                 "key points as bullet points, one simple example, and a 3-line summary at the end. "
                 "Topic: " + question
             )
+        st.session_state.history.append((question, answer))
         st.write(answer)
+
+    if st.session_state.history:
+        st.divider()
+        st.subheader("History")
+        for q, a in reversed(st.session_state.history):
+            with st.expander(q):
+                st.write(a)
+        if st.button("Clear history"):
+            st.session_state.history = []
+            st.rerun()
 
 with tab2:
     topic = st.text_input("Enter a topic for the quiz:")
@@ -77,3 +91,18 @@ with tab3:
                     "PDF content:\n" + text + "\n\nQuestion: " + pdf_question
                 )
             st.write(pdf_answer)
+
+with tab4:
+    course = st.text_input("What course do you want to learn?")
+    weeks = st.number_input("How many weeks?", min_value=1, max_value=52, value=4)
+    hours = st.number_input("Hours per day?", min_value=1, max_value=12, value=2)
+    if st.button("Create Plan") and course:
+        with st.spinner("Creating your study plan..."):
+            plan = ask_gemini(
+                "Create a week-by-week study plan for learning the course below. "
+                "For each week give a theme, daily topics, practice tasks, and a mini goal. "
+                "End with tips and a list of free resources. "
+                "Course: " + course + ". Duration: " + str(weeks) + " weeks. "
+                "Study time: " + str(hours) + " hours per day."
+            )
+        st.write(plan)
