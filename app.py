@@ -20,6 +20,6 @@ if st.button("Ask") and question:
     with st.spinner("Thinking..."):
         response = client.models.generate_content(
             model="gemini-3.8-flash",
-            contents="You are a helpful study assistant. Explain simply: " + question,
+            contents="You are a study assistant. Answer in clear study notes with a short heading, key points as bullet points, one simple example, and a 3-line summary at the end. Topic: " + question,
         )
     st.write(response.text)
