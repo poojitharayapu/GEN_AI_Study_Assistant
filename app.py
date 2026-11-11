@@ -4,6 +4,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors
+from pypdf import PdfReader
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -31,7 +32,7 @@ def ask_gemini(prompt, retries=4):
                 return "The server is busy right now. Please try again in a minute."
 
 
-tab1, tab2 = st.tabs(["Study Notes", "Quiz"])
+tab1, tab2, tab3 = st.tabs(["Study Notes", "Quiz", "PDF Q&A"])
 
 with tab1:
     question = st.text_input("Type your doubt here:")
@@ -55,3 +56,24 @@ with tab2:
                 "Topic: " + topic
             )
         st.write(quiz)
+
+with tab3:
+    pdf_file = st.file_uploader("Upload a PDF", type="pdf")
+    pdf_question = st.text_input("Ask a question about the PDF:")
+    if st.button("Ask PDF") and pdf_file and pdf_question:
+        with st.spinner("Reading PDF..."):
+            reader = PdfReader(pdf_file)
+            text = ""
+            for page in reader.pages:
+                text += (page.extract_text() or "") + "\n"
+            text = text[:30000]
+        if not text.strip():
+            st.error("Could not read any text from this PDF.")
+        else:
+            with st.spinner("Thinking..."):
+                pdf_answer = ask_gemini(
+                    "Answer the question using only the PDF content below. "
+                    "If the answer is not in the PDF, say so.\n\n"
+                    "PDF content:\n" + text + "\n\nQuestion: " + pdf_question
+                )
+            st.write(pdf_answer)
